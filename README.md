@@ -46,12 +46,9 @@ A simple backend application built with Node.js and Express for user registratio
 
   ```json
   {
-      "username": "testuser",
-      "password": "testpassword",
       "name": "John Doe",
-      "location": "New York",
-      "phoneNumber": "123-456-7890",
       "email": "john.doe@example.com"
+      "password": "testpassword",
   }
   ```
 
@@ -62,7 +59,7 @@ A simple backend application built with Node.js and Express for user registratio
 
   ```json
   {
-      "username": "testuser",
+      "email": "john.doe@example.com"
       "password": "testpassword"
   }
   ```
