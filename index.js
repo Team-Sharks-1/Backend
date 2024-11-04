@@ -2,15 +2,33 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
+const mysql = require('mysql2');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;  // Changed port for backend
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
+
+// MySQL Database Connection
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',         // Replace with your MySQL username
+  password: 'root', // Replace with your MySQL password
+  database: 'urban_connect'
+});
+
+db.connect((err) => {
+  if (err) {
+    console.error('Database connection error:', err);
+    return;
+  }
+  console.log('Connected to MySQL database');
+});
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Replace with your frontend's URL
+  origin: CORS_ORIGIN,
   credentials: true
 }));
 app.use(bodyParser.json());
@@ -21,8 +39,6 @@ const limiter = rateLimit({
   max: 100 // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
-
-let users = []; // In-memory user storage (replace with a database in production)
 
 // Input validation middleware
 const validateRegistration = [
@@ -45,18 +61,19 @@ app.post('/register', validateRegistration, async (req, res) => {
 
   const { email, password, name } = req.body;
 
-  // Check if user already exists
-  const existingUser = users.find(user => user.email === email);
-  if (existingUser) {
-    return res.status(400).json({ message: 'User already exists!' });
-  }
-
   try {
+    // Check if user already exists
+    const [existingUser] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
+    if (existingUser.length) {
+      return res.status(400).json({ message: 'User already exists!' });
+    }
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Register new user with email, name, and hashed password
-    users.push({ email, password: hashedPassword, name });
+    // Insert user into the database
+    await db.promise().query('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, hashedPassword]);
+
     res.status(201).json({ message: 'User registered successfully!' });
   } catch (error) {
     console.error('Error registering user:', error);
@@ -73,13 +90,15 @@ app.post('/login', validateLogin, async (req, res) => {
 
   const { email, password } = req.body;
 
-  // Find user by email
-  const user = users.find(user => user.email === email);
-  if (!user) {
-    return res.status(401).json({ message: 'Invalid credentials!' });
-  }
-
   try {
+    // Find user by email
+    const [rows] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
+    if (rows.length === 0) {
+      return res.status(401).json({ message: 'Invalid credentials!' });
+    }
+
+    const user = rows[0];
+
     // Compare provided password with stored hash
     const isMatch = await bcrypt.compare(password, user.password);
     if (isMatch) {
@@ -95,5 +114,5 @@ app.post('/login', validateLogin, async (req, res) => {
 
 // Start the server
 app.listen(PORT, () => {
-  console.log('Server is running on http://localhost:${PORT}');
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
