@@ -53,7 +53,7 @@ app.post('/register', validateRegistration, async (req, res) => {
   }
 
   try {
-    // Hash the password
+    // Hash the password and limiting
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Register new user with email, name, and hashed password
