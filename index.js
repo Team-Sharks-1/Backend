@@ -59,7 +59,12 @@ app.post('/register', validateRegistration, async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { email, password, name } = req.body;
+  app.get('/register', (req, res) => {
+    res.send('This endpoint accepts POST requests for user registration.');
+  });
+  
+
+  const { email, password, name, location } = req.body; // Include location
 
   try {
     // Check if user already exists
@@ -67,18 +72,19 @@ app.post('/register', validateRegistration, async (req, res) => {
     if (existingUser.length) {
       return res.status(400).json({ message: 'User already exists!' });
     }
-
+  
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert user into the database
-    await db.promise().query('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, hashedPassword]);
-
+  
+    // Insert user into the database (including location)
+    await db.promise().query('INSERT INTO users (name, email, password, location) VALUES (?, ?, ?, ?)', [name, email, hashedPassword, location]);
+  
     res.status(201).json({ message: 'User registered successfully!!' });
   } catch (error) {
     console.error('Error registering user:', error);
     res.status(500).json({ message: 'Error registering user', error: error.message });
   }
+  
 });
 
 // Login endpoint
