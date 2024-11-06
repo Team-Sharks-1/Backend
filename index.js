@@ -112,6 +112,25 @@ app.post('/login', validateLogin, async (req, res) => {
   }
 });
 
+// API to fetch professionals based on service type
+app.get('/api/professionals', (req, res) => {
+  const serviceType = req.query.service;
+
+  if (!serviceType) {
+    return res.status(400).json({ error: 'Service type is required' });
+  }
+
+  const query = 'SELECT * FROM professionals WHERE service_type = ?';
+
+  db.query(query, [serviceType], (err, results) => {
+    if (err) {
+      console.error('Error fetching professionals:', err);
+      return res.status(500).json({ error: 'Failed to fetch professionals' });
+    }
+    res.json(results);
+  });
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
