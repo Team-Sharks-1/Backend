@@ -60,14 +60,43 @@ npm install
    CREATE DATABASE urban_connect;
    USE urban_connect;
    CREATE TABLE users (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       name VARCHAR(255) NOT NULL,
-       email VARCHAR(255) UNIQUE NOT NULL,
-       password VARCHAR(255) NOT NULL
+     id INT PRIMARY KEY AUTO_INCREMENT,
+     name VARCHAR(255) NOT NULL,
+     email VARCHAR(255) UNIQUE NOT NULL,
+     password VARCHAR(255) NOT NULL,
+     location VARCHAR(255)
    );
    ```
 
-3. Set MySQL root user to use `mysql_native_password` (to avoid authentication issues):
+   Create table professionals:
+    ```sql
+   CREATE TABLE professionals (
+     id INT PRIMARY KEY AUTO_INCREMENT,
+     name VARCHAR(255) NOT NULL,
+     rating FLOAT NOT NULL,
+     jobs INT NOT NULL,
+     experience INT NOT NULL,
+     cost_per_hour FLOAT NOT NULL,
+     location VARCHAR(255) NOT NULL,
+     description TEXT NOT NULL,
+     image VARCHAR(255) NOT NULL,
+     service_type VARCHAR(255) NOT NULL
+   );
+
+   ```
+
+   Insert raw data for professional information:
+    ```sql
+      INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, image, service_type)
+      VALUES 
+        ('John Doe', 4.8, 156, 5, 45.0, 'Downtown', 'Certified electrician specializing in residential and commercial electrical services.', 'https://via.placeholder.com/100', 'electrician'),
+          ('Sarah Smith', 4.9, 203, 8, 55.0, 'Westside', 'Master electrician with expertise in smart home installations.', 'https://via.placeholder.com/100', 'electrician'),
+        ('Mike Johnson', 4.7, 178, 6, 50.0, 'Eastside', 'Licensed plumber specializing in emergency repairs and installations.', 'https://via.placeholder.com/100', 'plumber');
+
+   ```
+   
+
+4. Set MySQL root user to use `mysql_native_password` (to avoid authentication issues):
    ```sql
    ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';
    FLUSH PRIVILEGES;
