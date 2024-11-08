@@ -7,14 +7,14 @@ const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
-const PORT = process.env.PORT || 3001;  // Changed port for backend
+const PORT = process.env.PORT || 3001;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // MySQL Database Connection to localhost
 const db = mysql.createConnection({
   host: 'localhost',
-  user: 'root',         // Replace with your MySQL username
-  password: 'devesh', // Replace with your MySQL password
+  user: 'root',
+  password: 'root',
   database: 'urban_connect'
 });
 
@@ -53,16 +53,11 @@ const validateLogin = [
 ];
 
 // Register endpoint
-app.post('/register', validateRegistration, async (req, res) => {
+app.post('/api/register', validateRegistration, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-
-  app.get('/register', (req, res) => {
-    res.send('This endpoint accepts POST requests for user registration.');
-  });
-  
 
   const { email, password, name, location } = req.body; // Include location
 
@@ -70,7 +65,7 @@ app.post('/register', validateRegistration, async (req, res) => {
     // Check if user already exists
     const [existingUser] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
     if (existingUser.length) {
-      return res.status(400).json({ message: 'User already exists!' });
+      return res.status(400).json({ error: 'User already exists!' });
     }
   
     // Hash the password
@@ -79,19 +74,18 @@ app.post('/register', validateRegistration, async (req, res) => {
     // Insert user into the database (including location)
     await db.promise().query('INSERT INTO users (name, email, password, location) VALUES (?, ?, ?, ?)', [name, email, hashedPassword, location]);
   
-    res.status(201).json({ message: 'User registered successfully!!' });
+    res.status(201).json({ message: 'User registered successfully!' });
   } catch (error) {
     console.error('Error registering user:', error);
-    res.status(500).json({ message: 'Error registering user', error: error.message });
+    res.status(500).json({ error: 'Error registering user', details: error.message });
   }
-  
 });
 
 // Login endpoint
-app.post('/login', validateLogin, async (req, res) => {
+app.post('/api/login', validateLogin, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ error: 'Validation error', details: errors.array() });
   }
 
   const { email, password } = req.body;
@@ -100,42 +94,47 @@ app.post('/login', validateLogin, async (req, res) => {
     // Find user by email
     const [rows] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
     if (rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid credentials!' });
+      console.log('User not found with email:', email);
+      return res.status(401).json({ error: 'Invalid email or password!' });
     }
 
     const user = rows[0];
+    console.log('Found user:', user);
 
     // Compare provided password with stored hash
     const isMatch = await bcrypt.compare(password, user.password);
-    if (isMatch) {
-      return res.status(200).json({ message: 'Login successful!' });
-    } else {
-      return res.status(401).json({ message: 'Invalid credentials!' });
+    if (!isMatch) {
+      console.log('Password mismatch for user:', email);
+      return res.status(401).json({ error: 'Invalid email or password!' });
     }
+
+    // Login successful
+    console.log('Login successful for user:', email);
+    return res.status(200).json({ message: 'Login successful!', user: { id: user.id, name: user.name, email: user.email } });
+
   } catch (error) {
     console.error('Error during login:', error);
-    res.status(500).json({ message: 'Error during login', error: error.message });
+    return res.status(500).json({ error: 'Error during login', details: error.message });
   }
 });
 
 // API to fetch professionals based on service type
-app.get('/api/professionals', (req, res) => {
+app.get('/api/professionals', async (req, res) => {
   const serviceType = req.query.service;
 
   if (!serviceType) {
     return res.status(400).json({ error: 'Service type is required' });
   }
 
-  const query = 'SELECT * FROM professionals WHERE service_type = ?';
-
-  db.query(query, [serviceType], (err, results) => {
-    if (err) {
-      console.error('Error fetching professionals:', err);
-      return res.status(500).json({ error: 'Failed to fetch professionals' });
-    }
+  try {
+    const [results] = await db.promise().query('SELECT * FROM professionals WHERE service_type = ?', [serviceType]);
     res.json(results);
-  });
+  } catch (error) {
+    console.error('Error fetching professionals:', error);
+    res.status(500).json({ error: 'Failed to fetch professionals' });
+  }
 });
+
 
 // Start the server
 app.listen(PORT, () => {
