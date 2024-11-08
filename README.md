@@ -138,9 +138,61 @@ sudo node index.js
 The server should now be running on `http://localhost:5000`.
 
 ### 6. API Endpoints
+
 The following endpoints are available in this backend:
-- **POST /register** - Register a new user with `name`, `email`, and `password`.
-- **POST /login** - Log in an existing user with `email` and `password`.
+
+#### 1. POST /api/register - Register a new user.
+   - **Description**: Registers a new user by creating a database entry with the user’s details.
+   - **Request Body**:
+     - `name` (string, required): User's full name.
+     - `email` (string, required): User's email address (must be unique).
+     - `password` (string, required): User’s password (minimum 8 characters, hashed).
+     - `location` (string, required): User's location.
+   - **Response**:
+     - **201 Created**: `{ "message": "User registered successfully!" }`
+     - **400 Bad Request**: `{ "error": "User already exists!" }` if the email is already in use.
+     - **500 Internal Server Error**: `{ "error": "Error registering user", "details": "<error message>" }` for any other errors.
+
+#### 2. POST /api/login - Log in an existing user.
+   - **Description**: Authenticates a user with email and password.
+   - **Request Body**:
+     - `email` (string, required): User’s email address.
+     - `password` (string, required): User’s password.
+   - **Response**:
+     - **200 OK**: `{ "message": "Login successful!", "user": { "id": <id>, "name": "<name>", "email": "<email>" } }` if login is successful.
+     - **401 Unauthorized**: `{ "error": "Invalid email or password!" }` if email or password is incorrect.
+     - **500 Internal Server Error**: `{ "error": "Error during login", "details": "<error message>" }` for any other errors.
+
+#### 3. GET /api/professionals - Fetch professionals by service type.
+   - **Description**: Returns a list of professionals based on a specified service type.
+   - **Query Parameter**:
+     - `service` (string, required): Service type to filter professionals (e.g., `electrician`, `plumber`).
+   - **Response**:
+     - **200 OK**: An array of professional objects for the specified service type.
+     - **400 Bad Request**: `{ "error": "Service type is required" }` if the `service` query parameter is missing.
+     - **500 Internal Server Error**: `{ "error": "Failed to fetch professionals" }` for other errors.
+
+#### 4. [TBD] POST /api/book-service - Book a service with a professional. [TBD]
+   - **Description**: Allows a user to book a specific service with a professional.
+   - **Request Body**:
+     - `userId` (number, required): The ID of the user making the booking.
+     - `professionalId` (number, required): The ID of the professional being booked.
+     - `serviceType` (string, required): The type of service being booked.
+     - `date` (string, required): The date and time of the booking (format: ISO 8601).
+   - **Response**:
+     - **201 Created**: `{ "message": "Service booked successfully!" }`
+     - **400 Bad Request**: `{ "error": "Missing required fields" }` if any required fields are missing.
+     - **500 Internal Server Error**: `{ "error": "Failed to book service", "details": "<error message>" }` for other errors.
+
+#### 5. [TBD] GET /api/user-bookings - Retrieve all bookings for a user. [TBD]
+   - **Description**: Retrieves a list of all bookings made by a specific user.
+   - **Query Parameter**:
+     - `userId` (number, required): The ID of the user whose bookings are to be fetched.
+   - **Response**:
+     - **200 OK**: An array of booking objects.
+     - **400 Bad Request**: `{ "error": "User ID is required" }` if the `userId` query parameter is missing.
+     - **500 Internal Server Error**: `{ "error": "Failed to fetch user bookings" }` for other errors.
+
 
 ## Additional Notes
 
