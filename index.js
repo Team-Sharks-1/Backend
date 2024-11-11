@@ -52,6 +52,93 @@ const validateLogin = [
   body('password').notEmpty()
 ];
 
+// Additional validation for professional registration
+const validateProfessionalRegistration = [
+  body('serviceType').trim().notEmpty(),
+  body('name').trim().notEmpty(),
+  body('address').trim().notEmpty(),
+  body('email').isEmail().normalizeEmail(),
+  body('phoneNumber').trim().notEmpty(),
+  body('licenseId').trim().notEmpty(),
+  body('password').isLength({ min: 8 })
+];
+
+// Validation for professional login
+const validateProfessionalLogin = [
+  body('email').isEmail().normalizeEmail(),
+  body('password').notEmpty()
+];
+
+// Professional Login Endpoint
+app.post('/api/login_professional', validateProfessionalLogin, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: 'Validation error', details: errors.array() });
+  }
+
+  const { email, password } = req.body;
+
+  try {
+    // Find professional by email in the professionals_login table
+    const [rows] = await db.promise().query('SELECT * FROM professionals_login WHERE email = ?', [email]);
+    if (rows.length === 0) {
+      console.log('Professional not found with email:', email);
+      return res.status(401).json({ error: 'Invalid email or password!' });
+    }
+
+    const professional = rows[0];
+    console.log('Found professional:', professional);
+
+    // Compare provided password with stored hash
+    const isMatch = await bcrypt.compare(password, professional.password);
+    if (!isMatch) {
+      console.log('Password mismatch for professional:', email);
+      return res.status(401).json({ error: 'Invalid email or password!' });
+    }
+
+    // Login successful
+    console.log('Login successful for professional:', email);
+    return res.status(200).json({ message: 'Login successful!', professional: { id: professional.id, name: professional.name, email: professional.email } });
+
+  } catch (error) {
+    console.error('Error during professional login:', error);
+    return res.status(500).json({ error: 'Error during login', details: error.message });
+  }
+});
+
+// Register Professional Endpoint
+app.post('/api/register_professionals', validateProfessionalRegistration, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { serviceType, name, address, email, phoneNumber, licenseId, password } = req.body;
+
+  try {
+    // Check if professional with the same email already exists
+    const [existingProfessional] = await db.promise().query('SELECT * FROM professionals_login WHERE email = ?', [email]);
+    if (existingProfessional.length) {
+      return res.status(400).json({ error: 'Professional already registered with this email!' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert professional into the professionals_login table
+    await db.promise().query(
+      'INSERT INTO professionals_login (service_type, name, address, email, phone_number, license_id, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [serviceType, name, address, email, phoneNumber, licenseId, hashedPassword]
+    );
+
+    res.status(201).json({ message: 'Professional registered successfully!' });
+  } catch (error) {
+    console.error('Error registering professional:', error);
+    res.status(500).json({ error: 'Error registering professional', details: error.message });
+  }
+});
+
+
 // Register endpoint
 app.post('/api/register', validateRegistration, async (req, res) => {
   const errors = validationResult(req);
