@@ -67,7 +67,20 @@ npm install
      location VARCHAR(255)
    );
    ```
-
+   Create table for professionals_login
+   ```sql
+   CREATE TABLE professionals_login (
+     id INT PRIMARY KEY AUTO_INCREMENT,
+     service_type VARCHAR(255) NOT NULL,
+     name VARCHAR(255) NOT NULL,
+     address VARCHAR(255) NOT NULL,
+     email VARCHAR(255) UNIQUE NOT NULL,
+     phone_number VARCHAR(20) NOT NULL,
+     license_id VARCHAR(100) NOT NULL,
+     password VARCHAR(255) NOT NULL,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   );
+   ```
    Create table professionals:
     ```sql
    CREATE TABLE professionals (
