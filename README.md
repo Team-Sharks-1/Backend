@@ -67,7 +67,20 @@ npm install
      location VARCHAR(255)
    );
    ```
-
+   Create table for professionals_login
+   ```sql
+   CREATE TABLE professionals_login (
+     id INT PRIMARY KEY AUTO_INCREMENT,
+     service_type VARCHAR(255) NOT NULL,
+     name VARCHAR(255) NOT NULL,
+     address VARCHAR(255) NOT NULL,
+     email VARCHAR(255) UNIQUE NOT NULL,
+     phone_number VARCHAR(20) NOT NULL,
+     license_id VARCHAR(100) NOT NULL,
+     password VARCHAR(255) NOT NULL,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   );
+   ```
    Create table professionals:
     ```sql
    CREATE TABLE professionals (
@@ -172,26 +185,31 @@ The following endpoints are available in this backend:
      - **400 Bad Request**: `{ "error": "Service type is required" }` if the `service` query parameter is missing.
      - **500 Internal Server Error**: `{ "error": "Failed to fetch professionals" }` for other errors.
 
-#### 4. [TBD] POST /api/book-service - Book a service with a professional. [TBD]
-   - **Description**: Allows a user to book a specific service with a professional.
+#### 4. POST /api/login_professional - Log in an existing professional.
+   - **Description**: Authenticates a professional using email and password.
    - **Request Body**:
-     - `userId` (number, required): The ID of the user making the booking.
-     - `professionalId` (number, required): The ID of the professional being booked.
-     - `serviceType` (string, required): The type of service being booked.
-     - `date` (string, required): The date and time of the booking (format: ISO 8601).
+     - `email` (string, required): Professional’s email address.
+     - `password` (string, required): Professional’s password.
    - **Response**:
-     - **201 Created**: `{ "message": "Service booked successfully!" }`
-     - **400 Bad Request**: `{ "error": "Missing required fields" }` if any required fields are missing.
-     - **500 Internal Server Error**: `{ "error": "Failed to book service", "details": "<error message>" }` for other errors.
+     - **200 OK**: `{ "message": "Login successful!", "professional": { "id": <id>, "name": "<name>", "email": "<email>" } }` if login is successful.
+     - **401 Unauthorized**: `{ "error": "Invalid email or password!" }` if the email or password is incorrect.
+     - **500 Internal Server Error**: `{ "error": "Error during login", "details": "<error message>" }` for other errors.
 
-#### 5. [TBD] GET /api/user-bookings - Retrieve all bookings for a user. [TBD]
-   - **Description**: Retrieves a list of all bookings made by a specific user.
-   - **Query Parameter**:
-     - `userId` (number, required): The ID of the user whose bookings are to be fetched.
+#### 5. POST /api/register_professionals - Register a new professional.
+   - **Description**: Registers a new professional by creating an entry in the `professionals_login` table with their details.
+   - **Request Body**:
+     - `serviceType` (string, required): Type of service the professional provides (e.g., electrician, plumber).
+     - `name` (string, required): Professional’s full name.
+     - `address` (string, required): Professional’s address.
+     - `email` (string, required): Professional’s email address (must be unique).
+     - `phoneNumber` (string, required): Professional’s contact number.
+     - `licenseId` (string, required): License ID of the professional.
+     - `password` (string, required): Professional’s password (minimum 8 characters, hashed).
    - **Response**:
-     - **200 OK**: An array of booking objects.
-     - **400 Bad Request**: `{ "error": "User ID is required" }` if the `userId` query parameter is missing.
-     - **500 Internal Server Error**: `{ "error": "Failed to fetch user bookings" }` for other errors.
+     - **201 Created**: `{ "message": "Professional registered successfully!" }`
+     - **400 Bad Request**: `{ "error": "Professional already registered with this email!" }` if the email is already in use.
+     - **500 Internal Server Error**: `{ "error": "Error registering professional", "details": "<error message>" }` for any other errors.
+
 
 
 ## Additional Notes
