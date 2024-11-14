@@ -1,5 +1,5 @@
 # Use MySQL image
-FROM mysql:8.0
+FROM mysql:8.0.39
 
 # Set root password for MySQL
 ENV MYSQL_ROOT_PASSWORD=root
