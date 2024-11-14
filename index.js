@@ -12,7 +12,7 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // MySQL Database Connection to localhost
 const db = mysql.createConnection({
-  host: 'localhost',
+  host: 'mysql-container',
   user: 'root',
   password: 'root',
   database: 'urban_connect'
