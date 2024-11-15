@@ -15,7 +15,7 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: 'devesh',
+  password: 'root',
   database: 'urban_connect'
 });
 
@@ -214,8 +214,17 @@ app.get('/api/professionals', async (req, res) => {
     return res.status(400).json({ error: 'Service type is required' });
   }
 
+  // Check if serviceType is a non-empty string
+  if (typeof serviceType !== 'string' || serviceType.trim() === '') {
+    return res.status(400).json({ error: 'Invalid service type provided' });
+  } 
+
   try {
     const [results] = await db.promise().query('SELECT * FROM professionals WHERE service_type = ?', [serviceType]);
+    // Check if any professionals were found
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'No professionals found for the given service type' });
+    }
     res.json(results);
   } catch (error) {
     console.error('Error fetching professionals:', error);
