@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const mysql = require('mysql2');
+const multer = require('multer');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 
@@ -12,9 +13,9 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // MySQL Database Connection to localhost
 const db = mysql.createConnection({
-  host: 'mysql-container',
+  host: 'localhost',
   user: 'root',
-  password: 'root',
+  password: 'devesh',
   database: 'urban_connect'
 });
 
@@ -222,6 +223,42 @@ app.get('/api/professionals', async (req, res) => {
   }
 });
 
+// Configure multer for file uploads
+const upload = multer({ dest: 'uploads/' });
+
+app.post('/api/create_professional', upload.single('image'), (req, res) => {
+  const { name, jobs, experience, cost_per_hour, location, description, service_type } = req.body;
+  const image = req.file ? req.file.path : null;
+  const rating = 5.0; // Default rating value, adjust as needed
+
+  db.query(
+    'INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, service_type, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [name, rating, jobs, experience, cost_per_hour, location, description, service_type, image],
+    (error, results) => {
+      if (error) {
+        console.error("Database Error: ", error); // Log the specific database error
+        return res.status(500).json({ message: 'Error creating professional profile', error: error.message });
+      }
+      res.status(201).json({ message: 'Professional profile created successfully' });
+    }
+  );
+});
+
+// Endpoint to get professional by ID
+app.get('/api/get_professional/:id', (req, res) => {
+  const professionalId = req.params.id;
+
+  db.query('SELECT * FROM professionals WHERE id = ?', [professionalId], (error, results) => {
+    if (error) {
+      console.error("Database Error:", error);
+      return res.status(500).json({ message: 'Error retrieving professional data' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'Professional not found' });
+    }
+    res.json(results[0]); // Return the first result as the professional data
+  });
+});
 
 // Start the server
 app.listen(PORT, () => {
