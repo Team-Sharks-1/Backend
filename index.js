@@ -271,6 +271,22 @@ app.get('/api/get_professional/:id', (req, res) => {
   });
 });
 
+// API endpoint to handle form submission
+app.post('/api/book', (req, res) => {
+  const { date, time, description } = req.body;
+
+  // SQL query to insert form data into the database
+  const query = 'INSERT INTO bookings (date, time, description) VALUES (?, ?, ?)';
+
+  db.execute(query, [date, time, description], (err, result) => {
+    if (err) {
+      console.error('Error inserting data:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    res.status(200).json({ message: 'Booking confirmed', data: result });
+  });
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
