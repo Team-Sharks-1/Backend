@@ -97,6 +97,17 @@ npm install
    );
 
    ```
+Create table bookings:
+
+ ```sql
+   CREATE TABLE bookings (
+     id INT AUTO_INCREMENT PRIMARY KEY,
+     date DATE NOT NULL,
+     time TIME NOT NULL,
+     description TEXT
+   );
+
+   ```
 
    Insert raw data for professional information:
     ```sql
@@ -107,7 +118,6 @@ npm install
         ('Mike Johnson', 4.7, 178, 6, 50.0, 'Eastside', 'Licensed plumber specializing in emergency repairs and installations.', 'https://via.placeholder.com/100', 'plumber');
 
    ```
-   
 
 4. Set MySQL root user to use `mysql_native_password` (to avoid authentication issues):
    ```sql
