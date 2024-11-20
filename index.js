@@ -236,9 +236,11 @@ app.get('/api/professionals', async (req, res) => {
 const upload = multer({ dest: 'uploads/' });
 
 app.post('/api/create_professional', upload.single('image'), (req, res) => {
-  const { name, jobs, experience, cost_per_hour, location, description, service_type } = req.body;
+  const { name, experience, cost_per_hour, location, description, service_type } = req.body;
   const image = req.file ? req.file.path : null;
   const rating = 5.0; // Default rating value, adjust as needed
+  const jobs = 0; // Default jobs completed
+  
 
   db.query(
     'INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, service_type, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
