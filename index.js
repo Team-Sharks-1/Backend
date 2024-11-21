@@ -13,7 +13,7 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // MySQL Database Connection to localhost
 const db = mysql.createConnection({
-  host: 'mysql-container',
+  host: 'localhost',
   user: 'root',
   password: 'root',
   database: 'urban_connect'
@@ -70,13 +70,33 @@ const validateProfessionalLogin = [
   body('password').notEmpty()
 ];
 
-// Professional Login Endpoint
-app.post('/api/login_professional', validateProfessionalLogin, async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ error: 'Validation error', details: errors.array() });
+const jwt = require('jsonwebtoken');
+
+// JWT secret key (store securely in .env or config)
+const JWT_SECRET = 'your_secret_key';
+
+// Middleware to verify JWT token and extract user info (like `id`)
+const verifyJWT = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1]; // Get token from Authorization header
+  
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
   }
 
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ error: 'Failed to authenticate token' });
+    }
+
+    // Store decoded user ID in request object
+    req.professionalId = decoded.id;
+    next();
+  });
+};
+
+
+// Professional Login Endpoint
+app.post('/api/login_professional', async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -97,9 +117,24 @@ app.post('/api/login_professional', validateProfessionalLogin, async (req, res) 
       return res.status(401).json({ error: 'Invalid email or password!' });
     }
 
-    // Login successful
+    // Generate JWT token with professional id
+    const token = jwt.sign(
+      { id: professional.id },
+      JWT_SECRET,
+      { expiresIn: '1h' } // Token expires in 1 hour (adjust as needed)
+    );
+
+    // Login successful, return the JWT token and professional details
     console.log('Login successful for professional:', email);
-    return res.status(200).json({ message: 'Login successful!', professional: { id: professional.id, name: professional.name, email: professional.email } });
+    return res.status(200).json({
+      message: 'Login successful!',
+      token: token, // Send the token back to the client
+      professional: {
+        id: professional.id,
+        name: professional.name,
+        email: professional.email
+      }
+    });
 
   } catch (error) {
     console.error('Error during professional login:', error);
@@ -285,6 +320,83 @@ app.post('/api/book', (req, res) => {
     }
     res.status(200).json({ message: 'Booking confirmed', data: result });
   });
+});
+
+// Endpoint to get professional by ID
+app.get('/api/get_professional/:id', (req, res) => {
+  const professionalId = req.params.id;
+
+  db.query('SELECT * FROM professionals WHERE id = ?', [professionalId], (error, results) => {
+    if (error) {
+      console.error("Database Error:", error);
+      return res.status(500).json({ message: 'Error retrieving professional data' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ message: 'Professional not found' });
+    }
+    res.json(results[0]); // Return the first result as the professional data
+  });
+});
+
+//Change professional password
+app.post('/api/professional_change_password', async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+  const token = req.headers['authorization']?.split(' ')[1]; // Get token from Authorization header
+
+  // Check if the token is present
+  if (!token) {
+    return res.status(401).json({ error: 'Authorization token is required.' });
+  }
+
+  // Validate that all fields are provided
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return res.status(400).json({ error: 'All fields are required.' });
+  }
+
+  // Validate that new password and confirm password match
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ error: 'New password and confirm password do not match.' });
+  }
+
+  // Validate that new password is different from the current password
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ error: 'New password cannot be the same as the current password.' });
+  }
+
+  try {
+    // Verify the token and extract the professional id
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const professionalId = decoded.id; // Extract the ID from the JWT
+
+    // Find the professional by id
+    const [rows] = await db.promise().query('SELECT * FROM professionals_login WHERE id = ?', [professionalId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Professional not found.' });
+    }
+
+    const professional = rows[0];
+
+    // Compare the current password with the stored hash
+    const isMatch = await bcrypt.compare(currentPassword, professional.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+
+    // Hash the new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the password in the database
+    await db.promise().query('UPDATE professionals_login SET password = ? WHERE id = ?', [hashedNewPassword, professionalId]);
+
+    // Respond with success
+    res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+    res.status(500).json({ error: 'An error occurred while updating the password.' });
+  }
 });
 
 // Start the server
