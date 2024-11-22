@@ -15,7 +15,7 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 const db = mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: 'root',
+  password: 'devesh',
   database: 'urban_connect'
 });
 
@@ -462,6 +462,23 @@ app.get('/api/bookings', verifyJWT, async (req, res) => {
   }
 });
 
+// Get profile endpoint
+app.get('/api/profile', (req, res) => {
+  const email = req.session?.user?.email; // Assuming session stores user data
+  if (!email) {
+    return res.status(401).json({ error: 'User not logged in' });
+  }
+
+  db.promise()
+    .query('SELECT name, email, phone FROM users WHERE email = ?', [email])
+    .then(([rows]) => {
+      if (rows.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      res.status(200).json({ user: rows[0] });
+    })
+    .catch(err => res.status(500).json({ error: 'Database error', details: err.message }));
+});
 
 
 // Start the server
