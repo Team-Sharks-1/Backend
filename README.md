@@ -134,17 +134,16 @@ Create table bookings:
       END IF;
     END$$
     DELIMITER ;
-   ```
 
-   Insert raw data for professional information:
-    ```sql
+   ```
+Insert raw data for professional information:
+ ```sql
       INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, image, service_type)
       VALUES 
         ('John Doe', 4.8, 156, 5, 45.0, 'Downtown', 'Certified electrician specializing in residential and commercial electrical services.', 'https://via.placeholder.com/100', 'electrician'),
           ('Sarah Smith', 4.9, 203, 8, 55.0, 'Westside', 'Master electrician with expertise in smart home installations.', 'https://via.placeholder.com/100', 'electrician'),
         ('Mike Johnson', 4.7, 178, 6, 50.0, 'Eastside', 'Licensed plumber specializing in emergency repairs and installations.', 'https://via.placeholder.com/100', 'plumber');
-
-   ```
+```
 
 4. Set MySQL root user to use `mysql_native_password` (to avoid authentication issues):
    ```sql
