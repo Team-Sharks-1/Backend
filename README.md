@@ -100,13 +100,40 @@ npm install
 Create table bookings:
 
  ```sql
-   CREATE TABLE bookings (
-     id INT AUTO_INCREMENT PRIMARY KEY,
-     date DATE NOT NULL,
-     time TIME NOT NULL,
-     description TEXT
-   );
+      CREATE TABLE bookings (
+        id INT PRIMARY KEY AUTO_INCREMENT, -- Unique ID for each booking
+        customer_name VARCHAR(255) NOT NULL, -- Name of the customer
+        date DATE NOT NULL, -- Booking date
+        time TIME NOT NULL, -- Booking time
+        location VARCHAR(255) NOT NULL, -- Location of the service
+        price DECIMAL(10, 2) NOT NULL, -- Booking price
+        status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending', -- Booking status
+        professional_id INT DEFAULT NULL, -- ID of the professional handling the booking
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- When the booking was created
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Last update time
+        FOREIGN KEY (professional_id) REFERENCES professionals_login(id) -- Link to professionals_login table
+    );
 
+    CREATE INDEX idx_status ON bookings (status);
+    CREATE INDEX idx_professional_id ON bookings (professional_id);
+
+    INSERT INTO bookings (customer_name, date, time, location, price, status)
+    VALUES 
+    ('Jane Smith', '2023-11-25', '14:30:00', 'Downtown', 75.00, 'pending'),
+    ('Mike Johnson', '2023-11-26', '10:00:00', 'Uptown', 100.00, 'pending'),
+    ('Sarah Connor', '2023-11-27', '16:00:00', 'Eastside', 120.00, 'pending');
+
+    DELIMITER $$
+    CREATE TRIGGER prevent_double_accept
+    BEFORE UPDATE ON bookings
+    FOR EACH ROW
+    BEGIN
+      IF NEW.status = 'accepted' AND OLD.status = 'accepted' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'This booking has already been accepted by another professional.';
+      END IF;
+    END$$
+    DELIMITER ;
    ```
 
    Insert raw data for professional information:
