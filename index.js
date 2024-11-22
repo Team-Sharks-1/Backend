@@ -399,6 +399,71 @@ app.post('/api/professional_change_password', async (req, res) => {
   }
 });
 
+// Booking acceptance/rejection endpoint
+app.post('/api/booking/:id/action', verifyJWT, async (req, res) => {
+  const bookingId = req.params.id;
+  const { action } = req.body; // "accept" or "reject"
+  const professionalId = req.professionalId; // Retrieved from the JWT
+
+  if (!["accept", "reject"].includes(action)) {
+    return res.status(400).json({ error: "Invalid action. Allowed actions: 'accept', 'reject'" });
+  }
+
+  try {
+    // Check the current status of the booking
+    const [bookingRows] = await db.promise().query('SELECT * FROM bookings WHERE id = ?', [bookingId]);
+
+    if (bookingRows.length === 0) {
+      return res.status(404).json({ error: 'Booking not found.' });
+    }
+
+    const booking = bookingRows[0];
+
+    // If the booking is already accepted by another vendor, reject the action
+    if (booking.status === 'accepted' && booking.professional_id !== professionalId) {
+      return res.status(403).json({ error: 'Booking has already been accepted by another professional.' });
+    }
+
+    // Update the booking status based on the action
+    let newStatus = '';
+    if (action === 'accept') {
+      newStatus = 'accepted';
+    } else if (action === 'reject') {
+      newStatus = 'rejected';
+    }
+
+    // Update booking in the database
+    await db.promise().query(
+      'UPDATE bookings SET status = ?, professional_id = ? WHERE id = ?',
+      [newStatus, action === 'accept' ? professionalId : null, bookingId]
+    );
+
+    return res.status(200).json({ message: `Booking successfully ${action}ed.` });
+  } catch (error) {
+    console.error('Error updating booking:', error);
+    return res.status(500).json({ error: 'Failed to update booking.', details: error.message });
+  }
+});
+
+// Endpoint to fetch bookings for the logged-in professional
+app.get('/api/bookings', verifyJWT, async (req, res) => {
+  const professionalId = req.professionalId;
+
+  try {
+    const [bookings] = await db.promise().query(
+      'SELECT * FROM bookings WHERE professional_id IS NULL OR professional_id = ?',
+      [professionalId]
+    );
+
+    res.status(200).json(bookings);
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    res.status(500).json({ error: 'Failed to fetch bookings.' });
+  }
+});
+
+
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
