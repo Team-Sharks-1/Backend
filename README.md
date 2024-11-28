@@ -100,19 +100,23 @@ npm install
 Create table bookings:
 
  ```sql
-      CREATE TABLE bookings (
-        id INT PRIMARY KEY AUTO_INCREMENT, -- Unique ID for each booking
-        customer_name VARCHAR(255) NOT NULL, -- Name of the customer
-        date DATE NOT NULL, -- Booking date
-        time TIME NOT NULL, -- Booking time
-        location VARCHAR(255) NOT NULL, -- Location of the service
-        price DECIMAL(10, 2) NOT NULL, -- Booking price
-        status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending', -- Booking status
-        professional_id INT DEFAULT NULL, -- ID of the professional handling the booking
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- When the booking was created
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Last update time
-        FOREIGN KEY (professional_id) REFERENCES professionals_login(id) -- Link to professionals_login table
-    );
+   CREATE TABLE bookings (
+       id INT PRIMARY KEY AUTO_INCREMENT, -- Unique ID for each booking
+       customer_name VARCHAR(255) NOT NULL, -- Name of the customer
+       date DATE NOT NULL, -- Booking date
+       time TIME NOT NULL, -- Booking time
+       location VARCHAR(255) NOT NULL, -- Location of the service
+       price DECIMAL(10, 2) NOT NULL, -- Booking price
+       status ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending', -- Booking status
+       professional_id INT DEFAULT NULL, -- ID of the professional handling the booking
+       user_id INT, -- ID of the user associated with the booking
+       description TEXT, -- Description of the booking
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- When the booking was created
+       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Last update time
+       FOREIGN KEY (professional_id) REFERENCES professionals_login(id), -- Link to professionals_login table
+       FOREIGN KEY (user_id) REFERENCES users(id) -- Link to users table
+   );
+
 
     CREATE INDEX idx_status ON bookings (status);
     CREATE INDEX idx_professional_id ON bookings (professional_id);
