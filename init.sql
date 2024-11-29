@@ -120,14 +120,13 @@ VALUES
    END$$
    DELIMITER ;
 
-INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, image, service_type)
+INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, image, service_type, email)
 VALUES 
-  ('John Doe', 4.8, 156, 5, 45.0, 'Downtown', 'Certified electrician specializing in residential and commercial electrical services.', 'https://via.placeholder.com/100', 'electrician'),
-  ('Sarah Smith', 4.9, 203, 8, 55.0, 'Westside', 'Master electrician with expertise in smart home installations.', 'https://via.placeholder.com/100', 'electrician'),
-  ('Mike Johnson', 4.7, 178, 6, 50.0, 'Eastside', 'Licensed plumber specializing in emergency repairs and installations.', 'https://via.placeholder.com/100', 'plumber');
+  ('John Doe', 4.8, 156, 5, 45.0, 'Downtown', 'Certified electrician specializing in residential and commercial electrical services.', 'https://via.placeholder.com/100', 'electrician', 'johndoe@example.com'),
+  ('Sarah Smith', 4.9, 203, 8, 55.0, 'Westside', 'Master electrician with expertise in smart home installations.', 'https://via.placeholder.com/100', 'electrician', 'sarahsmith@example.com'),
+  ('Mike Johnson', 4.7, 178, 6, 50.0, 'Eastside', 'Licensed plumber specializing in emergency repairs and installations.', 'https://via.placeholder.com/100', 'plumber', 'mikejohnson@example.com');
 
 
 -- Set MySQL root password authentication method
 ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root';
 FLUSH PRIVILEGES;
-
