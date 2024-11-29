@@ -13,7 +13,7 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // MySQL Database Connection to localhost
 const db = mysql.createConnection({
-  host: 'mysql-container',
+  host: 'localhost',
   user: 'root',
   password: 'root',
   database: 'urban_connect'
@@ -648,7 +648,7 @@ app.post('/api/user_change_password', async (req, res) => {
 // Define an API endpoint to get professional details
 app.get("/api/professionaldetails", (req, res) => {
   const query = `
- SELECT id, name, service_type AS profession, email AS contact from professionals;
+ SELECT id, name, service_type AS profession, email AS contact, license_id AS licenseId from professionals_login;
   `;
 
   db.query(query, (err, results) => {
