@@ -98,6 +98,47 @@ npm install
    );
 
    ```
+Insert raw data for professional information:
+   ```sql
+   INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, image, service_type, email) 
+      VALUES 
+      -- Electrician
+      ('John Doe', 4.7, 120, 5, 25.0, 'Downtown', 'Experienced electrician with expertise in residential wiring and repairs.', 'https://example.com/images/john_doe.jpg', 'electrician', 'johndoe@example.com'),
+      ('Jane Smith', 4.5, 95, 3, 22.0, 'Uptown', 'Certified electrician offering reliable and safe electrical services.', 'https://example.com/images/jane_smith.jpg', 'electrician', 'janesmith@example.com'),
+      
+      -- Plumber
+      ('Michael Brown', 4.8, 140, 7, 30.0, 'Eastside', 'Expert plumber for installations, maintenance, and emergency repairs.', 'https://example.com/images/michael_brown.jpg', 'plumber', 'michaelbrown@example.com'),
+      ('Laura Wilson', 4.6, 110, 4, 28.0, 'Westside', 'Skilled plumber with a focus on quick and efficient solutions.', 'https://example.com/images/laura_wilson.jpg', 'plumber', 'laurawilson@example.com'),
+      
+      -- Gardener
+      ('Peter Green', 4.9, 150, 6, 20.0, 'Downtown', 'Passionate gardener specializing in landscaping and plant care.', 'https://example.com/images/peter_green.jpg', 'gardener', 'petergreen@example.com'),
+      ('Sophie Bloom', 4.7, 100, 3, 18.0, 'Eastside', 'Dedicated to creating beautiful gardens and green spaces.', 'https://example.com/images/sophie_bloom.jpg', 'gardener', 'sophiebloom@example.com'),
+      
+      -- Tutor
+      ('Emily White', 4.8, 80, 5, 40.0, 'Uptown', 'Experienced tutor specializing in math and science.', 'https://example.com/images/emily_white.jpg', 'tutor', 'emilywhite@example.com'),
+      ('Robert Black', 4.6, 60, 4, 35.0, 'Westside', 'Expert in languages and literature tutoring.', 'https://example.com/images/robert_black.jpg', 'tutor', 'robertblack@example.com'),
+      
+      -- Maid
+      ('Anna Brown', 4.9, 200, 8, 15.0, 'Downtown', 'Professional cleaner with a focus on thoroughness and attention to detail.', 'https://example.com/images/anna_brown.jpg', 'maid', 'annabrown@example.com'),
+      ('Chris Taylor', 4.7, 180, 6, 14.0, 'Uptown', 'Reliable maid service for residential and commercial cleaning.', 'https://example.com/images/chris_taylor.jpg', 'maid', 'christaylor@example.com'),
+      
+      -- Carpenter
+      ('Liam Wood', 4.8, 130, 6, 25.0, 'Eastside', 'Skilled carpenter specializing in custom furniture and repairs.', 'https://example.com/images/liam_wood.jpg', 'carpenter', 'liamwood@example.com'),
+      ('Olivia Craft', 4.6, 110, 4, 24.0, 'Westside', 'Experienced in creating unique woodwork designs.', 'https://example.com/images/olivia_craft.jpg', 'carpenter', 'oliviacraft@example.com'),
+      
+      -- Mechanic
+      ('Ethan Carver', 4.9, 160, 7, 30.0, 'Downtown', 'Reliable mechanic with expertise in engine repairs and maintenance.', 'https://example.com/images/ethan_carver.jpg', 'mechanic', 'ethancarver@example.com'),
+      ('Sophia Drive', 4.7, 140, 5, 28.0, 'Uptown', 'Certified auto repair technician with years of experience.', 'https://example.com/images/sophia_drive.jpg', 'mechanic', 'sophiadrive@example.com'),
+      
+      -- Pet Care
+      ('Daniel Paw', 4.8, 120, 5, 20.0, 'Eastside', 'Caring pet sitter with experience in handling various animals.', 'https://example.com/images/daniel_paw.jpg', 'petcare', 'danielpaw@example.com'),
+      ('Sarah Furry', 4.6, 100, 4, 18.0, 'Westside', 'Reliable pet caregiver specializing in dog walking and sitting.', 'https://example.com/images/sarah_furry.jpg', 'petcare', 'sarahfurry@example.com'),
+      
+      -- Healthcare
+      ('Dr. Alice Care', 4.9, 250, 10, 50.0, 'Downtown', 'Experienced healthcare professional providing home medical services.', 'https://example.com/images/alice_care.jpg', 'healthcare', 'alicecare@example.com'),
+      ('Nurse Mark Heal', 4.7, 180, 8, 45.0, 'Uptown', 'Compassionate home nurse with a focus on patient well-being.', 'https://example.com/images/mark_heal.jpg', 'healthcare', 'markheal@example.com');
+   ```
+
 Create table bookings:
 
  ```sql
@@ -118,11 +159,24 @@ Create table bookings:
     FOREIGN KEY (professional_id) REFERENCES professionals_login(id), -- Link to professionals_login table
     FOREIGN KEY (user_id) REFERENCES users(id) -- Link to users table
 );
-
-
     CREATE INDEX idx_status ON bookings (status);
     CREATE INDEX idx_professional_id ON bookings (professional_id);
 
+    DELIMITER $$
+    CREATE TRIGGER prevent_double_accept
+    BEFORE UPDATE ON bookings
+    FOR EACH ROW
+    BEGIN
+      IF NEW.status = 'accepted' AND OLD.status = 'accepted' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'This booking has already been accepted by another professional.';
+      END IF;
+    END$$
+    DELIMITER ;
+
+   ```
+Insert raw data for multiple types of bookings
+   ```sql
     INSERT INTO bookings (customer_name, date, time, location, price, status, professional_id, created_at, updated_at, user_id, description, service_type)
 VALUES
   -- Electrician
@@ -170,28 +224,7 @@ VALUES
   ('Meryl Streep', '2023-12-26', '14:00:00', 'Eastside', 220.00, 'pending', NULL, NOW(), NOW(), NULL, 'Nursing services', 'healthcare'),
   ('Nicole Kidman', '2023-12-27', '16:30:00', 'Southside', 250.00, 'pending', NULL, NOW(), NOW(), NULL, 'Elder care', 'healthcare');
 
-    DELIMITER $$
-    CREATE TRIGGER prevent_double_accept
-    BEFORE UPDATE ON bookings
-    FOR EACH ROW
-    BEGIN
-      IF NEW.status = 'accepted' AND OLD.status = 'accepted' THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'This booking has already been accepted by another professional.';
-      END IF;
-    END$$
-    DELIMITER ;
-
    ```
-Insert raw data for professional information:
- ```sql
-      INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, image, service_type)
-      VALUES 
-        ('John Doe', 4.8, 156, 5, 45.0, 'Downtown', 'Certified electrician specializing in residential and commercial electrical services.', 'https://via.placeholder.com/100', 'electrician'),
-          ('Sarah Smith', 4.9, 203, 8, 55.0, 'Westside', 'Master electrician with expertise in smart home installations.', 'https://via.placeholder.com/100', 'electrician'),
-        ('Mike Johnson', 4.7, 178, 6, 50.0, 'Eastside', 'Licensed plumber specializing in emergency repairs and installations.', 'https://via.placeholder.com/100', 'plumber');
-```
-
 4. Set MySQL root user to use `mysql_native_password` (to avoid authentication issues):
    ```sql
    ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';
