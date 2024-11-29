@@ -13,7 +13,7 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // MySQL Database Connection to localhost
 const db = mysql.createConnection({
-  host: 'mysql-container',
+  host: 'localhost',
   user: 'root',
   password: 'root',
   database: 'urban_connect'
@@ -75,7 +75,7 @@ const jwt = require('jsonwebtoken');
 // JWT secret key (store securely in .env or config)
 const JWT_SECRET = 'your_secret_key';
 
-// Middleware to verify JWT token and extract user info (like `id`)
+// Middleware to verify professional JWT token and extract user info (like `id`)
 const verifyJWT = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1]; // Get token from Authorization header
   
@@ -231,15 +231,31 @@ app.post('/api/login', validateLogin, async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password!' });
     }
 
-    // Login successful
+    // Generate JWT token with user id
+    const token = jwt.sign(
+      { id: user.id },
+      JWT_SECRET,
+      { expiresIn: '1h' } // Token expires in 1 hour (adjust as needed)
+    );
+
+    // Login successful, return the JWT token and user details
     console.log('Login successful for user:', email);
-    return res.status(200).json({ message: 'Login successful!', user: { id: user.id, name: user.name, email: user.email } });
+    return res.status(200).json({
+      message: 'Login successful!',
+      token: token, // Send the token back to the client
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      }
+    });
 
   } catch (error) {
     console.error('Error during login:', error);
     return res.status(500).json({ error: 'Error during login', details: error.message });
   }
 });
+
 
 // API to fetch professionals based on service type
 app.get('/api/professionals', async (req, res) => {
@@ -445,14 +461,26 @@ app.post('/api/booking/:id/action', verifyJWT, async (req, res) => {
   }
 });
 
-// Endpoint to fetch bookings for the logged-in professional
 app.get('/api/bookings', verifyJWT, async (req, res) => {
   const professionalId = req.professionalId;
 
   try {
-    const [bookings] = await db.promise().query(
-      'SELECT * FROM bookings WHERE professional_id IS NULL OR professional_id = ?',
+    // First, fetch the service type of the logged-in professional from the professional's table
+    const [professional] = await db.promise().query(
+      'SELECT service_type FROM professionals_login WHERE id = ?',
       [professionalId]
+    );
+
+    if (professional.length === 0) {
+      return res.status(404).json({ error: 'Professional not found' });
+    }
+
+    const serviceType = professional[0].service_type;
+
+    // Now fetch the bookings that match the service type and have either no assigned professional or match the logged-in professional's ID
+    const [bookings] = await db.promise().query(
+      'SELECT * FROM bookings WHERE (professional_id IS NULL OR professional_id = ?) AND service_type = ?',
+      [professionalId, serviceType]
     );
 
     res.status(200).json(bookings);
@@ -480,6 +508,61 @@ app.get('/api/profile', (req, res) => {
     .catch(err => res.status(500).json({ error: 'Database error', details: err.message }));
 });
 
+const verifyUserJWT = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1]; // Get token from Authorization header
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ error: 'Failed to authenticate token or not a user' });
+    }
+
+    req.userId = decoded.id; // Store user ID in the request object
+    next();
+  });
+};
+
+// Create Booking Endpoint
+app.post('/api/bookings', verifyUserJWT, async (req, res) => {
+  const { date, time, description, service, price, location } = req.body; // Include location in request body
+  const userId = req.userId; // Extracted from JWT for the authenticated user (userId)
+
+  if (!date || !time || !description || !service || !price || !location) {
+    return res.status(400).json({ error: 'All fields (date, time, description, service, price, and location) are required.' });
+  }
+
+  try {
+    // Step 1: Fetch the customer name from the users table
+    const [userResult] = await db.promise().query(
+      'SELECT name FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (userResult.length === 0) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const customerName = userResult[0].name;
+
+    // Step 2: Insert the booking into the bookings table with the customer name, price, location, and other details
+    const [result] = await db.promise().query(
+      'INSERT INTO bookings (user_id, professional_id, date, time, description, status, service_type, customer_name, price, location) ' +
+      'VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userId, date, time, description, 'pending', service, customerName, price, location] // Include location
+    );
+
+    res.status(201).json({
+      message: 'Booking created successfully!',
+      bookingId: result.insertId, // Return the newly created booking ID
+    });
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    res.status(500).json({ error: 'Failed to create booking.', details: error.message });
+  }
+});
 
 // Start the server
 app.listen(PORT, () => {
