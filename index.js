@@ -13,9 +13,9 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // MySQL Database Connection to localhost
 const db = mysql.createConnection({
-  host: 'mysql-container',
+  host: 'localhost',
   user: 'root',
-  password: 'root',
+  password: 'devesh',
   database: 'urban_connect'
 });
 
@@ -284,15 +284,15 @@ app.get('/api/professionals', async (req, res) => {
 const upload = multer({ dest: 'uploads/' });
 
 app.post('/api/create_professional', upload.single('image'), (req, res) => {
-  const { name, experience, cost_per_hour, location, description, service_type } = req.body;
+  const { name, experience, cost_per_hour, location, description, service_type, email } = req.body;
   const image = req.file ? req.file.path : null;
   const rating = 5.0; // Default rating value, adjust as needed
   const jobs = 0; // Default jobs completed
   
 
   db.query(
-    'INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, service_type, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [name, rating, jobs, experience, cost_per_hour, location, description, service_type, image],
+    'INSERT INTO professionals (name, rating, jobs, experience, cost_per_hour, location, description, service_type, email, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [name, rating, jobs, experience, cost_per_hour, location, description, service_type, email, image],
     (error, results) => {
       if (error) {
         console.error("Database Error: ", error); // Log the specific database error
@@ -643,6 +643,73 @@ app.post('/api/user_change_password', async (req, res) => {
     }
     res.status(500).json({ error: 'An error occurred while updating the password.' });
   }
+});
+
+// Define an API endpoint to get professional details
+app.get("/api/professionaldetails", (req, res) => {
+  const query = `
+ SELECT id, name, service_type AS profession, email AS contact from professionals;
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Error fetching professional details: ", err);
+      return res.status(500).json({ error: "Database query error" });
+    }
+    return res.json(results); // Send the fetched data as JSON
+  });
+});
+
+// Route to get all users details
+app.get('/api/usersdetails', (req, res) => {
+  const query = 'SELECT id, name, email FROM users'; // Selecting only required fields
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error fetching users' });
+    }
+    res.json(results); // Send the results as JSON
+  });
+});
+
+// Route to get all bookings details
+app.get('/api/bookingsdetails', (req, res) => {
+  const query = `
+    SELECT 
+      b.id, 
+      u.name AS user, 
+      b.service_type AS service, 
+      b.date, 
+      b.time
+    FROM bookings b
+    JOIN users u ON b.user_id = u.id
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error fetching bookings' });
+    }
+    res.json(results); // Send the results as JSON
+  });
+});
+
+// Route to delete a booking
+app.delete('/api/bookingsdetails/:id', (req, res) => {
+  const { id } = req.params;
+
+  const query = 'DELETE FROM bookings WHERE id = ?';
+  
+  db.query(query, [id], (err, result) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error deleting booking' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    res.status(200).json({ message: `Booking with ID ${id} deleted successfully` });
+  });
 });
 
 // Start the server
