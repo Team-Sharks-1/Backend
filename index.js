@@ -564,6 +564,31 @@ app.post('/api/bookings', verifyUserJWT, async (req, res) => {
   }
 });
 
+
+// Assuming we are fetching all bookings for the logged-in user
+app.get('/api/user_bookings', verifyUserJWT, async (req, res) => {
+  const userId = req.userId; // Extracted from JWT for the authenticated user (userId)
+
+  try {
+    // Fetch bookings from the database
+    const [bookings] = await db.promise().query(
+      'SELECT * FROM bookings WHERE user_id = ? ORDER BY date DESC',
+      [userId]
+    );
+
+    if (bookings.length === 0) {
+      return res.status(404).json({ error: 'No bookings found for this user.' });
+    }
+
+    res.status(200).json(bookings);
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    res.status(500).json({ error: 'Failed to fetch bookings.', details: error.message });
+  }
+});
+
+
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
