@@ -94,7 +94,6 @@ const verifyJWT = (req, res, next) => {
   });
 };
 
-
 // Professional Login Endpoint
 app.post('/api/login_professional', async (req, res) => {
   const { email, password } = req.body;
@@ -173,7 +172,6 @@ app.post('/api/register_professionals', validateProfessionalRegistration, async 
     res.status(500).json({ error: 'Error registering professional', details: error.message });
   }
 });
-
 
 // Register endpoint
 app.post('/api/register', validateRegistration, async (req, res) => {
@@ -255,7 +253,6 @@ app.post('/api/login', validateLogin, async (req, res) => {
     return res.status(500).json({ error: 'Error during login', details: error.message });
   }
 });
-
 
 // API to fetch professionals based on service type
 app.get('/api/professionals', async (req, res) => {
@@ -508,6 +505,7 @@ app.get('/api/profile', (req, res) => {
     .catch(err => res.status(500).json({ error: 'Database error', details: err.message }));
 });
 
+// Middleware to verify user JWT token and extract user info (like `id`)
 const verifyUserJWT = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1]; // Get token from Authorization header
 
@@ -564,7 +562,6 @@ app.post('/api/bookings', verifyUserJWT, async (req, res) => {
   }
 });
 
-
 // Assuming we are fetching all bookings for the logged-in user
 app.get('/api/user_bookings', verifyUserJWT, async (req, res) => {
   const userId = req.userId; // Extracted from JWT for the authenticated user (userId)
@@ -587,7 +584,66 @@ app.get('/api/user_bookings', verifyUserJWT, async (req, res) => {
   }
 });
 
+// Change user password
+app.post('/api/user_change_password', async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+  const token = req.headers['authorization']?.split(' ')[1]; // Get token from Authorization header
 
+  // Check if the token is present
+  if (!token) {
+    return res.status(401).json({ error: 'Authorization token is required.' });
+  }
+
+  // Validate that all fields are provided
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return res.status(400).json({ error: 'All fields are required.' });
+  }
+
+  // Validate that new password and confirm password match
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ error: 'New password and confirm password do not match.' });
+  }
+
+  // Validate that new password is different from the current password
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ error: 'New password cannot be the same as the current password.' });
+  }
+
+  try {
+    // Verify the token and extract the user id
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = decoded.id; // Extract the ID from the JWT
+
+    // Find the user by id
+    const [rows] = await db.promise().query('SELECT * FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const user = rows[0];
+
+    // Compare the current password with the stored hash
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+
+    // Hash the new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the password in the database
+    await db.promise().query('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, userId]);
+
+    // Respond with success
+    res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+    res.status(500).json({ error: 'An error occurred while updating the password.' });
+  }
+});
 
 // Start the server
 app.listen(PORT, () => {
