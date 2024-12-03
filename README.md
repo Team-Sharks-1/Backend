@@ -78,6 +78,8 @@ npm install
      phone_number VARCHAR(20) NOT NULL,
      license_id VARCHAR(100) NOT NULL,
      password VARCHAR(255) NOT NULL,
+     certificate_id VARCHAR(255),  -- Column to store certificate link or file reference
+     is_verified BOOLEAN DEFAULT FALSE,  -- Column to store verification status (false by default)
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    );
    ```
