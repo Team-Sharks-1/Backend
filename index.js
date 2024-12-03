@@ -3,9 +3,11 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const mysql = require('mysql2');
-const multer = require('multer');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const upload = multer({ dest: 'uploads/' });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -13,9 +15,9 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // MySQL Database Connection to localhost
 const db = mysql.createConnection({
-  host: 'mysql-container',
+  host: 'localhost',
   user: 'root',
-  password: 'root',
+  password: 'devesh',
   database: 'urban_connect'
 });
 
@@ -142,31 +144,68 @@ app.post('/api/login_professional', async (req, res) => {
 });
 
 // Register Professional Endpoint
-app.post('/api/register_professionals', validateProfessionalRegistration, async (req, res) => {
+// app.post('/api/register_professionals', validateProfessionalRegistration, async (req, res) => {
+//   const errors = validationResult(req);
+//   if (!errors.isEmpty()) {
+//     return res.status(400).json({ errors: errors.array() });
+//   }
+
+//   const { serviceType, name, address, email, phoneNumber, licenseId, password,licenseImage } = req.body;
+
+//   try {
+//     // Check if professional with the same email already exists
+//     const [existingProfessional] = await db.promise().query('SELECT * FROM professionals_login WHERE email = ?', [email]);
+//     if (existingProfessional.length) {
+//       return res.status(400).json({ error: 'Professional already registered with this email!' });
+//     }
+
+//     // Hash the password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Insert professional into the professionals_login table
+//     await db.promise().query(
+//       'INSERT INTO professionals_login (service_type, name, address, email, phone_number, license_id, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
+//       [serviceType, name, address, email, phoneNumber, licenseId, hashedPassword]
+//     );
+
+//     res.status(201).json({ message: 'Professional registered successfully!' });
+//   } catch (error) {
+//     console.error('Error registering professional:', error);
+//     res.status(500).json({ error: 'Error registering professional', details: error.message });
+//   }
+// });
+
+app.post('/api/register_professionals', upload.single('licenseImage'), async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-
+  cloudinary.config({
+    cloud_name: 'dikssjhly',
+    api_key: '852625159519758',
+    api_secret: 'bUbUqbvaphk9N8kcU__2T5vCAx8',
+  });
   const { serviceType, name, address, email, phoneNumber, licenseId, password } = req.body;
+  const licenseImage = req.file;
 
   try {
-    // Check if professional with the same email already exists
-    const [existingProfessional] = await db.promise().query('SELECT * FROM professionals_login WHERE email = ?', [email]);
-    if (existingProfessional.length) {
-      return res.status(400).json({ error: 'Professional already registered with this email!' });
+    if (licenseImage) {
+      const cloudinaryResponse = await cloudinary.uploader.upload(licenseImage.path);
+      const licenseImageUrl = cloudinaryResponse.secure_url;
+
+//     // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Save the professional data, including licenseImageUrl in the database
+      await db.promise().query(
+        'INSERT INTO professionals_login (service_type, name, address, email, phone_number, license_id, password, license_image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [serviceType, name, address, email, phoneNumber, licenseId, hashedPassword, licenseImageUrl]
+      );
+
+      res.status(201).json({ message: 'Professional registered successfully!' });
+    } else {
+      res.status(400).json({ error: 'License image is required.' });
     }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert professional into the professionals_login table
-    await db.promise().query(
-      'INSERT INTO professionals_login (service_type, name, address, email, phone_number, license_id, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [serviceType, name, address, email, phoneNumber, licenseId, hashedPassword]
-    );
-
-    res.status(201).json({ message: 'Professional registered successfully!' });
   } catch (error) {
     console.error('Error registering professional:', error);
     res.status(500).json({ error: 'Error registering professional', details: error.message });
@@ -281,8 +320,6 @@ app.get('/api/professionals', async (req, res) => {
 });
 
 // Configure multer for file uploads
-const upload = multer({ dest: 'uploads/' });
-
 app.post('/api/create_professional', upload.single('image'), (req, res) => {
   const { name, experience, cost_per_hour, location, description, service_type, email } = req.body;
   const image = req.file ? req.file.path : null;
@@ -648,7 +685,7 @@ app.post('/api/user_change_password', async (req, res) => {
 // Define an API endpoint to get professional details
 app.get("/api/professionaldetails", (req, res) => {
   const query = `
- SELECT id, name, service_type AS profession, email AS contact, license_id AS licenseId from professionals_login;
+ SELECT id, name, service_type AS profession, email AS contact, license_id AS licenseId, license_image_url AS certificateUrl from professionals_login;
   `;
 
   db.query(query, (err, results) => {
@@ -656,9 +693,11 @@ app.get("/api/professionaldetails", (req, res) => {
       console.error("Error fetching professional details: ", err);
       return res.status(500).json({ error: "Database query error" });
     }
+    console.log(results,"=====================================>")
     return res.json(results); // Send the fetched data as JSON
   });
 });
+
 
 // Route to get all users details
 app.get('/api/usersdetails', (req, res) => {
