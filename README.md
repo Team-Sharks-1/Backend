@@ -70,17 +70,17 @@ npm install
    Create table for professionals_login
    ```sql
    CREATE TABLE professionals_login (
-     id INT PRIMARY KEY AUTO_INCREMENT,
-     service_type VARCHAR(255) NOT NULL,
-     name VARCHAR(255) NOT NULL,
-     address VARCHAR(255) NOT NULL,
-     email VARCHAR(255) UNIQUE NOT NULL,
-     phone_number VARCHAR(20) NOT NULL,
-     license_id VARCHAR(100) NOT NULL,
-     password VARCHAR(255) NOT NULL,
-     certificate_id VARCHAR(255),  -- Column to store certificate link or file reference
-     is_verified BOOLEAN DEFAULT FALSE,  -- Column to store verification status (false by default)
-     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   id INT PRIMARY KEY AUTO_INCREMENT,
+   service_type VARCHAR(255) NOT NULL,
+   name VARCHAR(255) NOT NULL,
+   address VARCHAR(255) NOT NULL,
+   email VARCHAR(255) UNIQUE NOT NULL,
+   phone_number VARCHAR(20) NOT NULL,
+   license_id VARCHAR(100) NOT NULL,
+   password VARCHAR(255) NOT NULL,
+   license_image_url VARCHAR(255),  -- Column to store the URL of the license image
+   is_verified BOOLEAN DEFAULT FALSE, 
+   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Automatically sets the current timestamp
    );
    ```
    Create table professionals:
