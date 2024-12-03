@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS professionals_login (
   phone_number VARCHAR(20) NOT NULL,
   license_id VARCHAR(100) NOT NULL,
   password VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  license_image_url VARCHAR(255),  -- Column to store the URL of the license image
+  is_verified BOOLEAN DEFAULT FALSE, 
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Automatically sets the current timestamp
 );
 
 -- Create professionals table
